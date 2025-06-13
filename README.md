@@ -23,6 +23,10 @@ To start in development:
 ```bash
 ts-node-dev src/index.ts
 ```
+or, with `"dev": "ts-node-dev src/index.ts"` in `package.json`
+```bash
+npm run dev
+```
 
 ## Running the Application
 To start in production:
