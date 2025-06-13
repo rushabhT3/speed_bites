@@ -40,14 +40,14 @@ export class ContactService {
     if (primaryContacts.length === 1) {
       const primaryContact = primaryContacts[0];
 
-      // Check if exact match exists
-      const exactMatch = existingContacts.find(
-        (contact) =>
-          contact.email === email && contact.phoneNumber === phoneNumber
-      );
+      const combinationAlreadyExistsInGroup =
+        !(await this.checkIfNewContactNeeded(
+          primaryContact.id,
+          email,
+          phoneNumber
+        ));
 
-      if (exactMatch) {
-        // Scenario 3: Complete match - return existing data
+      if (combinationAlreadyExistsInGroup) {
         return this.consolidateContactData(primaryContact.id);
       } else {
         // Scenario 2: Partial match - create secondary contact
@@ -62,7 +62,8 @@ export class ContactService {
       return this.mergePrimaryContacts(primaryContacts, email, phoneNumber);
     }
 
-    // This shouldn't happen, but handle it gracefully
+    // This shouldn't happen, but handle it gracefully by consolidating the first identified primary's data
+    // (or its linked primary if it's already a secondary).
     return this.consolidateContactData(
       existingContacts[0].linkedId || existingContacts[0].id
     );
@@ -255,12 +256,21 @@ export class ContactService {
       },
     })) as ContactData[];
 
-    // Check if exact combination already exists
-    const exactMatch = allLinkedContacts.find(
-      (contact) =>
-        contact.email === email && contact.phoneNumber === phoneNumber
-    );
+    // Check if exact combination already exists within the primary contact's group
+    const exactMatch = allLinkedContacts.find((contact) => {
+      // If email is provided in the request, it must match the contact's email
+      const emailMatches = email ? contact.email === email : true;
+      // If phoneNumber is provided in the request, it must match the contact's phoneNumber
+      const phoneMatches = phoneNumber
+        ? contact.phoneNumber === phoneNumber
+        : true;
 
+      // An exact match for the provided input means all provided fields match an existing contact
+      // If an input field is undefined, it's considered a match for that specific field (i.e., we don't care if it matches)
+      return emailMatches && phoneMatches;
+    });
+
+    // Returns true if a new contact is needed (i.e., no exact match was found for the input combination)
     return !exactMatch;
   }
 
@@ -284,8 +294,6 @@ export class ContactService {
         createdAt: "asc",
       },
     })) as ContactData[];
-
-    const allContacts = [primaryContact, ...secondaryContacts];
 
     // Extract unique emails and phone numbers using utility functions
     const emails = extractUniqueEmails(primaryContact, secondaryContacts);
