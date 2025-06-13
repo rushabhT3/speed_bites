@@ -25,3 +25,13 @@ export interface ContactData {
   updatedAt: Date;
   deletedAt: Date | null;
 }
+
+export type LinkPrecedence = "primary" | "secondary";
+
+export interface CreateContactData {
+  email?: string;
+  phoneNumber?: string;
+  linkedId?: number;
+  linkPrecedence: LinkPrecedence;
+}
+
